@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cache Eviction Demo</title>
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        max-width: 800px;
+        margin: auto;
+    }
+
+    h2 {
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+
+    .input-group {
+        margin-bottom: 1rem;
+    }
+
+    input[type="text"], input[type="number"] {
+        padding: 5px;
+        width: 200px;
+        margin-right: 10px;
+    }
+
+    button {
+        padding: 6px 12px;
+        cursor: pointer;
+    }
+
+    .cache-visual {
+        margin-top: 20px;
+    }
+
+    .cache-box {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        border: 1px solid #ccc;
+        padding: 15px;
+        border-radius: 8px;
+        background: #f8f8f8;
+    }
+
+    .entry {
+        padding: 10px;
+        background: #dff0d8;
+        border: 1px solid #b2d8b2;
+        border-radius: 4px;
+        min-width: 80px;
+        text-align: center;
+    }
+
+    .log {
+        margin-top: 20px;
+        background: #f4f4f4;
+        padding: 10px;
+        height: 150px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+<h2>Cache Eviction Demo</h2>
+
+<!-- Input for Put operation -->
+<div class="input-group">
+  <label>Key: </label>
+  <input type="text" id="key">
+  <label>Value: </label>
+  <input type="text" id="value">
+  <button onclick="putToCache()">Put to Cache</button>
+</div>
+
+<!-- Input for Get by key only -->
+<div class="input-group">
+  <label>Get Key: </label>
+  <input type="text" id="getKeyOnly">
+  <button onclick="getFromCacheByKeyOnly()">Get</button>
+</div>
+
+<div class="cache-visual">
+  <h3>Current Cache Contents</h3>
+  <div class="cache-box" id="cacheBox">
+    <!-- Cache entries will be shown here -->
+  </div>
+</div>
+
+<div class="log" id="logBox">
+  <!-- Operation logs -->
+</div>
+
+<script>
+  async function putToCache() {
+      const key = document.getElementById('key').value;
+      const value = document.getElementById('value').value;
+      if (!key || !value) return alert("Please enter both key and value.");
+
+      try {
+          await fetch('/api/cache/put?key=' + key + '&value=' + value, { method: 'POST' });
+          log(`PUT: ${key} → ${value}`);
+          updateCacheView();
+      } catch (e) {
+          log(`Error during PUT: ${e}`);
+      }
+  }
+
+  async function getFromCacheByKeyOnly() {
+      const key = document.getElementById('getKeyOnly').value;
+      if (!key) return alert("Please enter a key.");
+
+      try {
+          const res = await fetch(`/api/cache/get?key=${key}`);
+          const val = await res.text();
+          log(`GET: ${key} → ${val}`);
+          updateCacheView();
+      } catch (e) {
+          log(`Error during GET: ${e}`);
+      }
+  }
+
+  async function updateCacheView() {
+      try {
+          const res = await fetch('/api/cache/all');
+          const cacheData = await res.json();
+          const container = document.getElementById('cacheBox');
+          container.innerHTML = '';
+
+          for (const [k, v] of Object.entries(cacheData)) {
+              const entryDiv = document.createElement('div');
+              entryDiv.className = 'entry';
+              entryDiv.textContent = `${k} : ${v}`;
+              container.appendChild(entryDiv);
+          }
+      } catch (e) {
+          log(`Error loading cache: ${e}`);
+      }
+  }
+
+  function log(message) {
+      const logBox = document.getElementById('logBox');
+      logBox.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+      logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  // Auto-load cache on page load
+  updateCacheView();
+</script>
+</body>
+</html>
